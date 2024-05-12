@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Отправка GET запросов</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        #response {
+            white-space: pre-wrap;
+            background-color: #f4f4f4;
+            padding: 20px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Отправка GET запросов</h1>
+    
+    <input type="text" id="orderId" placeholder="Введите ID заказа">
+    <button onclick="sendRequest()">Отправить запрос</button>
+    
+    <div id="response"></div>
+
+    <script>
+        function sendRequest() {
+            var orderId = document.getElementById("orderId").value; // Объявляем orderId здесь
+
+            var url = "http://localhost:8000/order/" + orderId;
+
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json(); // Преобразуем ответ в JSON
+                })
+                .then(data => {
+                    var formattedData = 'order_id: ' + orderId + '\n'; // Добавляем order_id в начало строки
+                    for (var key in data) {
+                        formattedData += key + ': ' + JSON.stringify(data[key]) + '\n';
+                    }
+                    document.getElementById("response").innerText = formattedData;
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                    document.getElementById("response").innerText = "Произошла ошибка. Проверьте консоль для дополнительной информации.";
+                    console.error(error);
+                });
+        }
+    </script>
+</body>
+</html>
