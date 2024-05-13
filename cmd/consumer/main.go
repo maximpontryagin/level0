@@ -43,6 +43,7 @@ func main() {
 	// Заполнение кеша данными из БД (для случая отключения http сервера)
 	cache.WritingCahce(db)
 
+	// Mutex для гарантии записи данных и подключаем nats
 	var mu sync.Mutex
 	go func() {
 		mu.Lock()
@@ -53,6 +54,7 @@ func main() {
 		}
 	}()
 
+	// Запуск сервера
 	go func() {
 		err = server.StartServer(cache)
 		if err != nil {
