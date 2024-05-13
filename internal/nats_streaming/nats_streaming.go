@@ -3,7 +3,6 @@ package nats_streaming
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"strconv"
 
@@ -14,12 +13,12 @@ import (
 
 func ConnectNats(db *sql.DB, c *cahce_memory.Cache) error {
 	//подключение к nats серверу
-	fmt.Println("подключаюсь к nats серверу")
+	log.Println("подключаюсь к nats серверу...")
 	nc, err := nats.Connect(nats.DefaultURL)
 	if err != nil {
 		return err
 	} else {
-		fmt.Println("Nats сервер подключился")
+		log.Println("Nats сервер подключился")
 	}
 	defer nc.Close()
 
@@ -72,8 +71,6 @@ func ConnectNats(db *sql.DB, c *cahce_memory.Cache) error {
 		}
 		// Записывание данных из nats server в кеш
 		c.Set(strconv.Itoa(orderID), order)
-		res_cache, _ := c.Get(strconv.Itoa(orderID))
-		log.Println("В кеш записано сообщение:", res_cache)
 	})
 	if err != nil {
 		log.Println(err)

@@ -3,7 +3,6 @@ package postgres
 import (
 	"database/sql"
 	"fmt"
-	"log"
 
 	_ "github.com/lib/pq"
 )
@@ -85,6 +84,5 @@ func CreateDBtable(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	log.Println("Таблицы успешно созданы")
 	return nil
 }

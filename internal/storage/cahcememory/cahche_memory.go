@@ -96,9 +96,8 @@ func (c *Cache) WritingCahce(db *sql.DB) error {
 			continue
 		}
 		c.Set(strconv.Itoa(orderID), order)
-		cache_res, _ := c.Get(strconv.Itoa(orderID))
-		log.Println("Данные записанные в кеш:", cache_res)
 	}
+	log.Println("Данные из БД записанны в кеш")
 	if err := ordersRows.Err(); err != nil {
 		return err
 	}

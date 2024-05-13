@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"sync"
 
@@ -61,7 +60,7 @@ func main() {
 			log.Println(err)
 		}
 	}()
-	fmt.Println("http сервер запущен")
+	log.Println("http сервер запущен")
 	// "Блокирование" go рутины main
 	select {}
 }
