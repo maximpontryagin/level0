@@ -85,6 +85,6 @@ func CreateDBtable(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
-	log.Println("✓ Таблицы успешно созданы")
+	log.Println("Таблицы успешно созданы")
 	return nil
 }

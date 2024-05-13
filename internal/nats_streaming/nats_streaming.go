@@ -18,6 +18,8 @@ func ConnectNats(db *sql.DB, c *cahce_memory.Cache) error {
 	nc, err := nats.Connect(nats.DefaultURL)
 	if err != nil {
 		return err
+	} else {
+		fmt.Println("Nats сервер подключился")
 	}
 	defer nc.Close()
 

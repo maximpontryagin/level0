@@ -49,7 +49,6 @@ func main() {
 			fmt.Println("Ошибка подключения к NATS:", err)
 		}
 	}()
-	fmt.Println("Nats сервер подключился")
 
 	go func() {
 		err = server.StartServer(cache)
@@ -64,6 +63,6 @@ func main() {
 
 func initConfig() error {
 	viper.AddConfigPath(".")
-	viper.SetConfigName("config")
+	viper.SetConfigName("config_example")
 	return viper.ReadInConfig()
 }
