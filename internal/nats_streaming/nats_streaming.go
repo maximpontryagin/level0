@@ -27,7 +27,7 @@ func ConnectNats(db *sql.DB, c *cahce_memory.Cache) error {
 	publisher_subject := "publisher_subject"
 	subscription, err := nc.Subscribe(publisher_subject, func(m *nats.Msg) {
 		var order struct_delivery.Order
-		log.Printf("успешно подключился к Nats streamig. Получено сообщение: %s\n", string(m.Data))
+		log.Printf("Получено сообщение из nats streaming server: %s\n", string(m.Data))
 
 		err := json.Unmarshal(m.Data, &order)
 		if err != nil {
