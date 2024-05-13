@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"sync"
 
 	_ "github.com/lib/pq"
 	server "github.com/maximpontryagin/level0/internal/http_server"
@@ -42,8 +43,11 @@ func main() {
 	// Заполнение кеша данными из БД (для случая отключения http сервера)
 	cache.WritingCahce(db)
 
+	var mu sync.Mutex
 	go func() {
+		mu.Lock()
 		err := nats_streaming.ConnectNats(db, cache)
+		mu.Unlock()
 		if err != nil {
 			log.Println("Ошибка подключения к NATS:", err)
 		}
