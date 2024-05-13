@@ -25,14 +25,13 @@ func main() {
 		DBName:   viper.GetString("db.dbname"),
 		SSLMode:  viper.GetString("db.sslmode"),
 	})
-
 	if err != nil {
 		log.Println(err)
 	}
 	defer db.Close()
+	log.Println("База данных подключилась")
 
-	fmt.Println("База данных подключилась")
-	//Созданик таблицы в БД если они еще не созданы
+	// Создаст таблицы в БД если они еще не созданы
 	err = postgres.CreateDBtable(db)
 	if err != nil {
 		log.Println(err)
@@ -46,7 +45,7 @@ func main() {
 	go func() {
 		err := nats_streaming.ConnectNats(db, cache)
 		if err != nil {
-			fmt.Println("Ошибка подключения к NATS:", err)
+			log.Println("Ошибка подключения к NATS:", err)
 		}
 	}()
 
@@ -57,7 +56,7 @@ func main() {
 		}
 	}()
 	fmt.Println("http сервер запущен")
-
+	// "Блокирование" go рутины main
 	select {}
 }
 
