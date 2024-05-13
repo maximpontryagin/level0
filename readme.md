@@ -46,7 +46,7 @@ docker run --name=NatsServer -p 4222:4222 -p 8222:8222 -d nats-streaming -p 4222
 ```
 3. Запустить PostgreSQL. Docker образ:
 ```
-docker run --name=NatsServer -p 4222:4222 -p 8222:8222 -d nats-streaming -p 4222 -m 8222
+docker run --name=postgres -e POSTGRES_PASSWORD='qwe' -p 5436:5432 -d --rm postgres
 ```
 4. Запустить сервис:
 ```
