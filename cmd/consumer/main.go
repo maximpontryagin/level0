@@ -2,13 +2,16 @@ package main
 
 import (
 	"log"
-	"sync"
+	"os"
+	"os/signal"
+	"syscall"
 
 	_ "github.com/lib/pq"
 	server "github.com/maximpontryagin/level0/internal/http_server"
 	"github.com/maximpontryagin/level0/internal/nats_streaming"
-	cahce_memory "github.com/maximpontryagin/level0/internal/storage/cahcememory"
+	cachce_memory "github.com/maximpontryagin/level0/internal/storage/cachcememory"
 	"github.com/maximpontryagin/level0/internal/storage/postgres"
+	"github.com/nats-io/nats.go"
 	"github.com/spf13/viper"
 )
 
@@ -38,19 +41,24 @@ func main() {
 	}
 
 	// Инициализация кеша
-	cache := cahce_memory.New()
+	cache := cachce_memory.New()
 	// Заполнение кеша данными из БД (для случая отключения http сервера)
-	cache.WritingCahce(db)
-
-	// Mutex для гарантии записи данных и подключаем nats
-	var mu sync.Mutex
+	err = cache.Writing_In_Cahce_from_DB(db)
+	if err != nil {
+		log.Println("Ошибка заполнения кеша данными из бд:", err)
+	}
+	// Запуск nats streaming
 	go func() {
-		mu.Lock()
-		err := nats_streaming.ConnectNats(db, cache)
-		mu.Unlock()
+		log.Println("Подключаюсь к nats серверу...")
+		nc, err := nats.Connect(nats.DefaultURL)
 		if err != nil {
 			log.Println("Ошибка подключения к NATS:", err)
+			return
 		}
+		log.Println("Nats сервер подключен")
+		subscription := nats_streaming.Writing_in_DB_and_Cache(db, cache, nc)
+		defer subscription.Unsubscribe()
+		select {}
 	}()
 
 	// Запуск сервера
@@ -62,7 +70,12 @@ func main() {
 	}()
 	log.Println("http сервер запущен")
 	// "Блокирование" go рутины main
-	select {}
+	FinishSignal := make(chan os.Signal, 1)
+	signal.Notify(FinishSignal, os.Interrupt)
+	signal.Notify(FinishSignal, syscall.SIGTERM)
+
+	<-FinishSignal
+	log.Println("Сервис завершает работу и закрывает соединия с Nats и БД...")
 }
 
 func initConfig() error {
