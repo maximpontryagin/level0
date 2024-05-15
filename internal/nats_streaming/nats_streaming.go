@@ -6,32 +6,22 @@ import (
 	"log"
 	"strconv"
 
-	cahce_memory "github.com/maximpontryagin/level0/internal/storage/cahcememory"
+	cachce_memory "github.com/maximpontryagin/level0/internal/storage/cachcememory"
 	"github.com/maximpontryagin/level0/internal/struct_delivery"
 	"github.com/nats-io/nats.go"
 )
 
-func ConnectNats(db *sql.DB, c *cahce_memory.Cache) error {
-	//подключение к nats серверу
-	log.Println("подключаюсь к nats серверу...")
-	nc, err := nats.Connect(nats.DefaultURL)
-	if err != nil {
-		return err
-	} else {
-		log.Println("Nats сервер подключился")
-	}
-	defer nc.Close()
+// подписка на канал
 
-	// подписка на канал
-
-	publisher_subject := "publisher_subject"
-	subscription, err := nc.Subscribe(publisher_subject, func(m *nats.Msg) {
+func Writing_in_DB_and_Cache(db *sql.DB, c *cachce_memory.Cache, nc *nats.Conn) *nats.Subscription {
+	subscription, err := nc.Subscribe("publisher_subject", func(m *nats.Msg) {
 		var order struct_delivery.Order
 		log.Printf("Получено сообщение из nats streaming server: %s\n", string(m.Data))
 
 		err := json.Unmarshal(m.Data, &order)
 		if err != nil {
 			log.Println(err)
+			return
 		}
 
 		// Записывание данных из nats server в БД
@@ -56,6 +46,7 @@ func ConnectNats(db *sql.DB, c *cahce_memory.Cache) error {
 
 		if err != nil {
 			log.Println(err)
+			return
 		}
 
 		for _, item := range order.Items {
@@ -67,6 +58,7 @@ func ConnectNats(db *sql.DB, c *cahce_memory.Cache) error {
 				item.Name, item.Sale, item.Size, item.TotalPrice, item.NmID, item.Brand, item.Status)
 			if err != nil {
 				log.Println(err)
+				return
 			}
 		}
 		// Записывание данных из nats server в кеш
@@ -75,9 +67,5 @@ func ConnectNats(db *sql.DB, c *cahce_memory.Cache) error {
 	if err != nil {
 		log.Println(err)
 	}
-	defer subscription.Unsubscribe()
-
-	// "Блокирование" программы, что бы она продолжала слушать nats server
-	select {}
-
+	return subscription
 }
