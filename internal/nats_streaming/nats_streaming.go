@@ -7,65 +7,34 @@ import (
 	"strconv"
 
 	cachce_memory "github.com/maximpontryagin/level0/internal/storage/cachcememory"
+	"github.com/maximpontryagin/level0/internal/storage/postgres"
 	"github.com/maximpontryagin/level0/internal/struct_delivery"
-	"github.com/nats-io/nats.go"
+	"github.com/nats-io/stan.go"
 )
 
-// подписка на канал
-
-func Writing_in_DB_and_Cache(db *sql.DB, c *cachce_memory.Cache, nc *nats.Conn) *nats.Subscription {
-	subscription, err := nc.Subscribe("publisher_subject", func(m *nats.Msg) {
+func DurableSubscriptions(stanConn stan.Conn, db *sql.DB, c *cachce_memory.Cache) (stan.Subscription, error) {
+	// Создание долговременной подписки
+	subscribe, err := stanConn.Subscribe("publisher_subject", func(m *stan.Msg) {
 		var order struct_delivery.Order
 		log.Printf("Получено сообщение из nats streaming server: %s\n", string(m.Data))
 
+		// сериализация данных в структуру order
 		err := json.Unmarshal(m.Data, &order)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-
 		// Записывание данных из nats server в БД
-		query_order := `
-			INSERT INTO orders (order_uid, track_number, entry, delivery_name, delivery_phone, delivery_zip, delivery_city, delivery_address, delivery_region, delivery_email, payment_transaction, payment_request_id, payment_currency, payment_provider, payment_amount, payment_dt, payment_bank, payment_delivery_cost, payment_goods_total, payment_custom_fee, locale, internal_signature, customer_id, delivery_service, shardkey, sm_id, date_created, oof_shard)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28)
-			RETURNING order_id
-		`
-
-		var orderID int
-
-		err = db.QueryRow(query_order,
-			order.OrderUID, order.TrackNumber, order.Entry,
-			order.Delivery.Name, order.Delivery.Phone, order.Delivery.Zip,
-			order.Delivery.City, order.Delivery.Address, order.Delivery.Region,
-			order.Delivery.Email, order.Payment.Transaction, order.Payment.RequestID,
-			order.Payment.Currency, order.Payment.Provider, order.Payment.Amount,
-			order.Payment.PaymentDT, order.Payment.Bank, order.Payment.DeliveryCost,
-			order.Payment.GoodsTotal, order.Payment.CustomFee, order.Locale,
-			order.InternalSign, order.CustomerID, order.DeliveryService,
-			order.ShardKey, order.SMID, order.DateCreated, order.OOFShard).Scan(&orderID)
-
+		orderID, err := postgres.Writing_in_DB(db, order)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-
-		for _, item := range order.Items {
-			query_item := `
-			INSERT INTO order_items (order_id, chrt_id, track_number, price, rid, name, sale, size, total_price, nm_id, brand, status)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-		`
-			_, err := db.Exec(query_item, orderID, item.ChrtID, item.TrackNumber, item.Price, item.RID,
-				item.Name, item.Sale, item.Size, item.TotalPrice, item.NmID, item.Brand, item.Status)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-		}
 		// Записывание данных из nats server в кеш
 		c.Set(strconv.Itoa(orderID), order)
-	})
+	}, stan.DurableName("my-durable-subscription"), stan.DeliverAllAvailable()) // Создание долговременной подписки
 	if err != nil {
-		log.Println(err)
+		return subscribe, err
 	}
-	return subscription
+	return subscribe, nil
 }
