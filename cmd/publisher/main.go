@@ -5,28 +5,29 @@ import (
 	"os"
 
 	_ "github.com/lib/pq"
-	"github.com/nats-io/nats.go"
+	"github.com/nats-io/stan.go"
 )
 
-// publisher отправляет данные из json к брокеру (необходим для проверки работы)
 func main() {
-	// подключение к nats streaming
-	nc, err := nats.Connect(nats.DefaultURL)
+	// Подключение к NATS Streaming Server
+	stanConn, err := stan.Connect("test-cluster", "publisher-client-id")
 	if err != nil {
-		log.Printf("Ошибка при подключению к nats: %v", err)
+		log.Fatalf("Ошибка при подключении к NATS Streaming: %v", err)
+	}
+	defer stanConn.Close()
+
+	// Сериализация json в данные структуры
+	jsonData, err := os.ReadFile("model_data.json")
+	if err != nil {
+		log.Fatalf("Ошибка при чтении файла: %v", err)
 	}
 
-	// Сериализация json в данные струкур
-	json_data, err := os.ReadFile("model_data.json")
-	if err != nil {
-		log.Printf("Ошибка при чтении файла: %v", err)
-	}
-
-	publisher_subject := "publisher_subject" // тема в которую загрузится сообщение в nats server
-	nc.Publish(publisher_subject, json_data)
+	// Тема, в которую загрузится сообщение в NATS Streaming Server
+	publisherSubject := "publisher_subject"
+	err = stanConn.Publish(publisherSubject, jsonData)
 	if err != nil {
 		log.Printf("Ошибка при отправке сообщения: %v", err)
 	} else {
-		log.Println("Данные отправлены в NATS Streaming", string(json_data))
+		log.Println("Данные отправлены в NATS Streaming:", string(jsonData))
 	}
 }
