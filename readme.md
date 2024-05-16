@@ -47,7 +47,7 @@ git clone https://github.com/maximpontryagin/level0
 ```
 2. Запустить Nats-streaming. Docker образ:
 ```
-docker run --name=NatsServer -p 4222:4222 -p 8222:8222 -d nats-streaming -p 4222 -m 8222
+docker run -p 4222:4222 -p 8222:8222 nats-streaming -cluster_id test-cluster
 ```
 3. Запустить PostgreSQL. Docker образ:
 ```
