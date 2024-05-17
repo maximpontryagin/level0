@@ -13,28 +13,30 @@ import (
 )
 
 func DurableSubscriptions(stanConn stan.Conn, db *sql.DB, c *cachce_memory.Cache) (stan.Subscription, error) {
-	// Создание долговременной подписки
 	subscribe, err := stanConn.Subscribe("publisher_subject", func(m *stan.Msg) {
 		var order struct_delivery.Order
 		log.Printf("Получено сообщение из nats streaming server: %s\n", string(m.Data))
 
-		// сериализация данных в структуру order
+		// Сериализация данных в структуру order
 		err := json.Unmarshal(m.Data, &order)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		// Записывание данных из nats server в БД
+
+		// Записывание данных из NATS server в БД
 		orderID, err := postgres.Writing_in_DB(db, order)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		// Записывание данных из nats server в кеш
+
+		// Записывание данных из NATS server в кеш
 		c.Set(strconv.Itoa(orderID), order)
-	}, stan.DurableName("my-durable-subscription"), stan.DeliverAllAvailable()) // Создание долговременной подписки
+
+	}, stan.DurableName("my-durable-subscription"))
 	if err != nil {
-		return subscribe, err
+		return nil, err
 	}
 	return subscribe, nil
 }

@@ -75,24 +75,17 @@ func main() {
 		if err != nil {
 			log.Println(err)
 		}
-		subscribe, err := nats_streaming.DurableSubscriptions(stanConn, db, cache)
+		_, err = nats_streaming.DurableSubscriptions(stanConn, db, cache)
 		if err != nil {
 			log.Fatalf("Ошибка при подписке NATS Streaming Server: %v", err)
 		}
 		<-ctx.Done()
 
-		// Отписываемся и закрываем nats streaming server
-		err = subscribe.Unsubscribe()
-		if err != nil {
-			log.Printf("Ошибка отписки от nats streaming server : %s\n", err.Error())
-		} else {
-			log.Println("Успешно отписался от nats streaming server")
-		}
 		err = stanConn.Close()
 		if err != nil {
-			log.Printf("Ошибка закрытия nats streaming server : %s\n", err.Error())
+			log.Printf("Ошибка закрытия соединения с nats streaming server : %s\n", err.Error())
 		} else {
-			log.Println("Успешно закрыл nats streaming server")
+			log.Println("Успешно закрыл соединение с nats streaming server")
 		}
 	}()
 
