@@ -13,6 +13,7 @@ import (
 	"github.com/maximpontryagin/level0/internal/nats_streaming"
 	cachce_memory "github.com/maximpontryagin/level0/internal/storage/cachcememory"
 	"github.com/maximpontryagin/level0/internal/storage/postgres"
+	"github.com/maximpontryagin/level0/internal/struct_delivery"
 	"github.com/nats-io/stan.go"
 	"github.com/spf13/viper"
 )
@@ -29,7 +30,7 @@ func main() {
 	}()
 
 	if err := initConfig(); err != nil {
-		log.Println(err)
+		log.Fatal(err)
 	}
 
 	// Подключение к БД
@@ -57,9 +58,9 @@ func main() {
 	}
 
 	// Инициализация кеша
-	cache := cachce_memory.New()
+	cache := cachce_memory.New[struct_delivery.Order]()
 	// Заполнение кеша данными из БД (для случая отключения http сервера)
-	err = cache.Writing_In_Cahce_from_DB(db)
+	err = cachce_memory.Writing_In_Cahce_from_DB(cache, db)
 	if err != nil {
 		log.Println("Ошибка заполнения кеша данными из бд:", err)
 	}

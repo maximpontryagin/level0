@@ -12,7 +12,7 @@ import (
 	"github.com/nats-io/stan.go"
 )
 
-func DurableSubscriptions(stanConn stan.Conn, db *sql.DB, c *cachce_memory.Cache) (stan.Subscription, error) {
+func DurableSubscriptions(stanConn stan.Conn, db *sql.DB, c *cachce_memory.Cache[struct_delivery.Order]) (stan.Subscription, error) {
 	subscribe, err := stanConn.Subscribe("publisher_subject", func(m *stan.Msg) {
 		var order struct_delivery.Order
 		log.Printf("Получено сообщение из nats streaming server: %s\n", string(m.Data))

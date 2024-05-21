@@ -10,66 +10,47 @@ import (
 	"github.com/maximpontryagin/level0/internal/struct_delivery"
 )
 
-// Струкрута cache описывает хранилище
-type Cache struct {
+// Cache - универсальная структура кэша.
+// T - тип хранимых значений.
+type Cache[T any] struct {
 	sync.RWMutex // Для безопасной записи данных при вызове go рутин
-	items        map[string]Item
-}
-
-type Item struct {
-	Value interface{} // Любое значение
+	store        map[string]T
 }
 
 // Инициализация хранилища
-func New() *Cache {
-	items := make(map[string]Item) // инициализируем карту в паре ключ(string)/значение(Item)
-	cache := Cache{
-		items: items,
-	}
-	return &cache
+func New[T any]() *Cache[T] {
+	return &Cache[T]{store: make(map[string]T)}
 }
 
-// Установка значений
-func (c *Cache) Set(key string, value interface{}) {
-
+// Установливает значения в кеш
+func (c *Cache[T]) Set(key string, value T) {
 	c.Lock()
 	defer c.Unlock()
-
-	c.items[key] = Item{
-		Value: value,
-	}
+	c.store[key] = value
 }
 
-// Получение значений
-func (c *Cache) Get(key string) (interface{}, bool) {
-
+// Возвращает значение из кеша
+func (c *Cache[T]) Get(key string) (T, bool) {
 	c.RLock()
 	defer c.RUnlock()
 
-	item, found := c.items[key]
-	if !found {
-		return nil, false
-	}
-
-	return item.Value, true
+	val, found := c.store[key]
+	return val, found
 }
 
 // Удаление кеша по переданному ключу
-func (c *Cache) Delete(key string) error {
-
+func (c *Cache[T]) Delete(key string) error {
 	c.Lock()
 	defer c.Unlock()
-
-	if _, found := c.items[key]; !found {
+	if _, found := c.store[key]; !found {
 		return errors.New("ключ в кеше не найден")
 	}
-	delete(c.items, key)
-
+	delete(c.store, key)
 	return nil
 }
 
 // Записывание данных из БД в кеш
-func (c *Cache) Writing_In_Cahce_from_DB(db *sql.DB) error {
+func Writing_In_Cahce_from_DB(c *Cache[struct_delivery.Order], db *sql.DB) error {
 	ordersQuery := "SELECT * FROM orders"
 	ordersRows, err := db.Query(ordersQuery)
 	if err != nil {
@@ -92,12 +73,12 @@ func (c *Cache) Writing_In_Cahce_from_DB(db *sql.DB) error {
 			&order.InternalSign, &order.CustomerID, &order.DeliveryService,
 			&order.ShardKey, &order.SMID, &order.DateCreated, &order.OOFShard)
 		if err != nil {
-			log.Printf("erorr scanning orders row: %v", err)
+			log.Printf("error scanning orders row: %v", err)
 			continue
 		}
 		c.Set(strconv.Itoa(orderID), order)
 	}
-	log.Println("Данные из БД записанны в кеш")
+	log.Println("Данные из БД записаны в кэш")
 	if err := ordersRows.Err(); err != nil {
 		return err
 	}
