@@ -76,6 +76,28 @@ func Writing_In_Cahce_from_DB(c *Cache[struct_delivery.Order], db *sql.DB) error
 			log.Printf("error scanning orders row: %v", err)
 			continue
 		}
+		// Запрос для получения items для текущего заказа
+		itemsQuery := "SELECT chrt_id, track_number, price, rid, name, sale, size, total_price, nm_id, brand, status FROM order_items WHERE order_id = $1"
+		itemsRows, err := db.Query(itemsQuery, orderID)
+		if err != nil {
+			log.Printf("error querying items for order_id %d: %v", orderID, err)
+			continue
+		}
+
+		var items []struct_delivery.Item
+		for itemsRows.Next() {
+			var item struct_delivery.Item
+			err := itemsRows.Scan(&item.ChrtID, &item.TrackNumber, &item.Price, &item.RID,
+				&item.Name, &item.Sale, &item.Size, &item.TotalPrice, &item.NmID,
+				&item.Brand, &item.Status)
+			if err != nil {
+				log.Printf("error scanning items row: %v", err)
+				continue
+			}
+			items = append(items, item)
+		}
+		itemsRows.Close()
+		order.Items = items
 		c.Set(strconv.Itoa(orderID), order)
 	}
 	log.Println("Данные из БД записаны в кэш")
