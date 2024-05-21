@@ -10,12 +10,21 @@ import (
 	"time"
 
 	cachce_memory "github.com/maximpontryagin/level0/internal/storage/cachcememory"
+	"github.com/maximpontryagin/level0/internal/struct_delivery"
 )
 
-func StartServer(c *cachce_memory.Cache, ctx context.Context) error {
-	http.HandleFunc("/order/", func(w http.ResponseWriter, r *http.Request) {
-		HandlerGetOnly(w, r, c)
-	})
+type HandlerWithCache struct {
+	cache *cachce_memory.Cache[struct_delivery.Order]
+}
+
+func NewHandlerWithCache(cache *cachce_memory.Cache[struct_delivery.Order]) *HandlerWithCache {
+	return &HandlerWithCache{cache: cache}
+}
+
+func StartServer(c *cachce_memory.Cache[struct_delivery.Order], ctx context.Context) error {
+	handlerWithCache := NewHandlerWithCache(c)
+
+	http.HandleFunc("/order/", handlerWithCache.HandlerGetOnly)
 
 	httpServer := &http.Server{
 		Addr: ":8000",
@@ -35,7 +44,7 @@ func StartServer(c *cachce_memory.Cache, ctx context.Context) error {
 	return httpServer.Shutdown(shutdownCtx)
 }
 
-func HandlerGetOnly(w http.ResponseWriter, r *http.Request, c *cachce_memory.Cache) {
+func (hs *HandlerWithCache) HandlerGetOnly(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 	if r.Method == http.MethodGet {
@@ -50,7 +59,7 @@ func HandlerGetOnly(w http.ResponseWriter, r *http.Request, c *cachce_memory.Cac
 			http.Error(w, "Неверный формат id заказа", http.StatusNotFound)
 			return
 		}
-		order, search_result := c.Get(order_id)
+		order, search_result := hs.cache.Get(order_id)
 		if !search_result {
 			http.Error(w, "Введен несуществующий id заказа", http.StatusNotFound)
 			return
